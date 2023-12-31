@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-from langchain import PromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain.agents import initialize_agent, Tool
 from langchain.agents import AgentType
 from langchain.chat_models import ChatOpenAI
@@ -20,10 +20,18 @@ import requests
 import json
 import streamlit as st
 
+from pages.db import ChatStore
+
 load_dotenv('./key.env')
 
+openai_key = os.getenv("OPENAI_API_KEY")
 browserless_api_key = os.getenv("BROWSERLESS_API_KEY")
 serper_api_key = os.getenv("SERPER_API_KEY")
+password = os.getenv("MONGO_PWD")
+user = os.getenv("MONGO_USER")
+
+uri = f"mongodb+srv://{user}:{password}@qndb.fdshmnw.mongodb.net/?retryWrites=true&w=majority"
+storage = ChatStore(uri, "qndb", "qna")
 
 
 def search(query):
@@ -164,7 +172,7 @@ agent = initialize_agent(
 
 
 def main():
-    st.set_page_config(page_title="AI Research Agent", page_icon=":cherry:")
+    st.set_page_config(page_title="AI Research Agent", page_icon=":tangerine:")
 
     st.header("AI Research Agent :bird:")
     query = st.text_input("Research Goal")
@@ -172,6 +180,7 @@ def main():
     if query:
         st.write(f"Doing research for {query}...")
         result = agent({"input": query})
+        storage.insert_question(query, result)
         st.info(result['output'])
 
 
