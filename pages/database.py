@@ -42,6 +42,7 @@ def main():
 
     # Retrieve all question/response pairs from MongoDB
     all_data = storage.get_all_questions_responses()
+    all_data.reverse()
     st.write("---")
 
     # Display each question and response pair

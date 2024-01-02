@@ -20,7 +20,7 @@ import requests
 import json
 import streamlit as st
 
-from pages.db import ChatStore
+from pages.database import ChatStore
 
 load_dotenv('./key.env')
 
@@ -87,7 +87,7 @@ def summary(objective, content):
     llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k-0613")
 
     text_splitter = RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500
+        separators=["\n\n", "\n"], chunk_size=5000, chunk_overlap=500
     )
     docs = text_splitter.create_documents([content])
     map_prompt = """
@@ -172,9 +172,21 @@ agent = initialize_agent(
 
 
 def main():
-    st.set_page_config(page_title="AI Research Agent", page_icon=":tangerine:")
+    st.set_page_config(page_title="WebWeaver Chat", page_icon=":tangerine:")
 
-    st.header("AI Research Agent :bird:")
+    st.header("WebWeaver Chat :bird:")
+
+    st.markdown("""
+    WebWeaver may take some time to research your topic. Please be patient.
+    
+    You can ask it questions, or give it a topic to research. Be specific.
+    You can also give it follow-up questions.
+    """)
+
+    st.warning(
+        """If you click away from this page, the answer WebWeaver provides will disappear. You can find it in the database if you need.""",
+        icon="⚠️")
+
     query = st.text_input("Research Goal")
 
     if query:
