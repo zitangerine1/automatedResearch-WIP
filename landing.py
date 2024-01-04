@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def main():
-    st.set_page_config(page_title="WebWeaver Chat", page_icon=":tangerine:", layout="wide")
+    st.set_page_config(page_title="WebWeaver Home", page_icon=":tangerine:", layout="wide")
     st.title("Welcome to WebWeaver.")
 
     st.markdown(
