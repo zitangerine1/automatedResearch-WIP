@@ -1,6 +1,5 @@
 import streamlit as st
 import tweepy
-import requests
 import os
 from dotenv import load_dotenv
 
@@ -8,15 +7,15 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-from pymongo.mongo_client import MongoClient
 from pages.database import ChatStore
 from pages.chat import agent
+from pages.chat import search, scrape_website, summary, ScrapeWebsiteInput, ScrapeWebsiteTool
 
 load_dotenv("./key.env")
 password = os.getenv("MONGO_PWD")
 user = os.getenv("MONGO_USER")
 
-uri = f"mongodb+srv://{user}:{password}@qndb.fdshmnw.mongodb.net/?retryWrites=true&w=majority"
+uri = f"mongodb+srv://{user}:{password}@qndb.fdshmnw.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
 
 
 def phrase_for_socials(query):
@@ -43,30 +42,65 @@ def phrase_for_socials(query):
     return output
 
 
+class TwitterHandler:
+    def __init__(self, key, secret_key, token):
+        self.auth = tweepy.OAuthHandler(key, secret_key)
+        self.auth.set_access_token(token)
+        self.api = tweepy.API(self.auth)
+
+    def connTwitter(self):
+        try:
+            self.api.verify_credentials()
+            return True
+        except:
+            return False
+
+    def post(self, message):
+        if self.connTwitter():
+            self.api.update_status(message)
+
+
 def main():
     st.header("Post to Socials")
     storage = ChatStore(uri, "qndb", "qna")
 
     query = st.text_input("Research Goal")
-    answered = False
+    post_handler = TwitterHandler() 
 
     if query:
         st.write(f"Researching {query}...")
         result = agent({"input": query})
         result = phrase_for_socials(result)
         st.info(result)
-        answered = True
+        
+        if post_handler.connTwitter():
+            post_handler.post(result)
+            st.success("Posted successfully!")
+            
+        else:
+            st.error("Failed to connect to Twitter. Check your credentials.")
+        
+    option = st.selectbox(
+    "Alternatively, fetch from the database of responses...",
+    ([f"{i['question'].capitalize()}?" for i in storage.get_all_questions_responses()]),
+    index=None,
+    placeholder="Select query...",
+    )
 
-    if answered:
-        edit = st.button("Edit Response")
-
-        if edit:
-            result = st.text_area("Edit your response", value=result)
-            save_edits = st.button("Save Edits")
-
-            if save_edits:
-                st.info(result)
-
+    if st.button("Use database entry"):
+        result = agent({"input": option})
+        result = phrase_for_socials(result)
+        st.info(result)
+        
+        if post_handler.connTwitter():
+            post_handler.post(result)
+            st.success("Posted successfully!")
+            
+        else:
+            st.error("Failed to connect to Twitter. Check your credentials.")
+    
+    # Open to implementing other social media sources.
+    
 
 if __name__ == '__main__':
     main()
