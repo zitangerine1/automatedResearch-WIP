@@ -229,17 +229,27 @@ class ScrapeWebsiteInput(BaseModel):
     # Field is used to give extra metadata, in this case, a description of each field to provide to the LangChain orchestrator.
     # Each field is statically typed in accordance, and rather aptly, with general Pydantic best-practices.
 
+"""
+The reason we use Pydantic models is because they let us define structure to the data that the tool needs. This means that we define what fields each function will have and what their constraints are. When we're out scraping random websites, we don't really know what the data returned to us will look like. It could have unescaped characters that break the program by ending a string early, or some other formatting issues that stop our code from working. Having Pydantic models will let Python raise validation errors instead of breaking, which we can then catch using try-except statements to keep the code going and continue scraping new websites.
+"""
 
 class ScrapeWebsiteTool(BaseTool):
+    # This is another Pydantic data validation model, this time inheriting from BaseTool.
+    # It has a similar purpose to the previous model, this time provide an args_schema alongside the description of the function.
+    # The args_schema defines the er, schema for the arguments. It's kinda great when the library has descriptive names for their fields. args_schema uses the other Pydantic model defined above and tells the orchestrator how the input data is structured.
     name = "scraped_website"
     description = "Useful when you need to get data from a website URL, passing both URL and objective to the function; DO NOT make up an URL"
     args_schema: Type[BaseModel] = ScrapeWebsiteInput
 
     def _run(self, objective: str, url: str):
+        # _run is a method that calls the function we defined above to scrape a website.
         return scrape_website(objective, url)
 
     def _arun(self, url: str):
-        raise NotImplementedError(":(")
+        # Though I have not implemented a function to run if scrape_website does not run, I'm still required to declare the _arun condition. This does nothing except but raise an error, but also cannot be removed, else the code will not run.
+        # This will basically never run, as scrape_website has it's own loop for handling failures and will never return a fail condition to THIS function.
+        # https://twitter.com/TransgirlSource/status/1386542050233896970 (same energy, contains swear words.)
+        raise NotImplementedError("How'd you get here??")
 
 
 tools = [
@@ -249,9 +259,13 @@ tools = [
         description="Useful for when you need to answer questions about current events, data. You should ask targeted questions."
     ),
     ScrapeWebsiteTool(),
+    # Here, we formally pass the Pydantic templates to LangChain to use.
+    # This is dynamic, so if anyone ever wants to add new functionality, just make a new Pydantic model accordingly to your needs, write the function it needs to run, and add it here as a tool and it'll be automagically implemented.
 ]
 
 system_message = SystemMessage(
+    # SystemMessages are what we tell the LLM before we ask it any questions. Typically, this is used for giving a set of specific guidelines and constraints to the LLM. In our case, we use this to make the LLM think it's really smart and to make sure it gives factual responses.
+    # This is a technique called prompt engineering.
     content="""
     You are a world class researcher, who can do detailed research on any topic and produce fact-based results;
     You do not make things up, you will try as hard as possible to gather facts and data to back up the research.
@@ -267,12 +281,21 @@ system_message = SystemMessage(
 )
 
 agent_kwargs = {
+    # kwargs is a term used in vanilla Python (not to be confused with **kwargs!! They are different things!) that accepted named keywords into a function. It works similarly here as you can add keyword arguments to be passed to the LangChain agent.
+    # Keyword arguments are parameters that are passed into the function with a pre-defined value. In this case, the key-value pairs below are our keyword arguments.
     "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
     "system_message": system_message,
 }
 
 llm = ChatOpenAI(temperature=0, model="gpt-4")
+# This initialises the LLM using the ChatOpenAI class from LangChain. 
+# temperature as a parameter defines how random the answers will be. Ranging from 0-1, a temperature of 1 will yield very diverse and brave answers, whereas 0 will yield deterministic and consistent responses.
+# model indicates which OpenAI model to use, in our case, gpt-4.
 memory = ConversationSummaryBufferMemory(memory_key="memory", return_messages=True, llm=llm, max_token_limit=1000)
+# The above line will allow the LLM to use past conversations to improve its current answer. 
+# memory_key lets the LLM access the memory from MessagesPlaceholder defined on/close to line 286, using the key "memory".
+# return_messages indicate that the memory should return the actual message instead of the message content.
+
 
 agent = initialize_agent(
     tools,
@@ -281,6 +304,10 @@ agent = initialize_agent(
     verbose=True,
     agent_kwargs=agent_kwargs,
     memory=memory,
+    # Combines the power of all the code we've written before into a super-powerful research agent! YAY!
+    # tools tells the agent what tools it can use, seen in the array defined earlier.
+    # agent indicates that the orchestrator should use OpenAI Functions API, which is an API designed specifically for use by LangChain and OpenAI models.
+    # agent_kwargs is previously defined and allows it to use the system message and the extra prompt messages.
 )
 
 
