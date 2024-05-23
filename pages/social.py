@@ -23,14 +23,19 @@ from pages.chat import search, scrape_website, summary, ScrapeWebsiteInput, Scra
 load_dotenv("./key.env")
 password = os.getenv("MONGO_PWD")
 user = os.getenv("MONGO_USER")
+
+tuser = os.getenv("TWITTER_KEY")
+tsecret = os.getenv("TWITTER_SECRET")
+atoken = os.getenv("TWITTER_TOKEN")
+asecret = os.getenv("TWITTER_TOKEN_SECRET")
 # Load the environment variables with all the API keys and passwords needed.
 
-uri = f"mongodb+srv://{user}:{password}@qndb.fdshmnw.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
+uri = f"mongodb+srv://{user}:{password}@qndb.bjan2b5.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
 # Target URL for the database containing all user queries, responses etc., used later in code.
 
 
 def phrase_for_socials(query):
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0)
     # This initialises the LLM using the ChatOpenAI class from LangChain. 
     # temperature as a parameter defines how random the answers will be. Ranging from 0-1, a temperature of 1 will yield very diverse and brave answers, whereas 0 will yield deterministic and consistent responses. 
     # Feel free to play around with temperature here, I feel like it'll be quite interesting to see what it does with a high temperature, especially when it's trying to be bubbly for social media.
@@ -66,15 +71,15 @@ def phrase_for_socials(query):
 
     return output
 
+# Again, a class is used for modularity. In hindsight, it might've been better to make a general class for "SocialMediaHandler" and have its subclasses be for specific media and override its 'connect' and 'post' features.
+# For now, this is absolutely not nessecary as the client only wants to post to Twitter, but this places a good stepping-stone to adding more social media.
 
 class TwitterHandler:
-    # Again, a class is used for modularity. In hindsight, it might've been better to make a general class for "SocialMediaHandler" and have its subclasses be for specific media and override its 'connect' and 'post' features.
-    # For now, this is absolutely not nessecary as the client only wants to post to Twitter, but this places a good stepping-stone to adding more social media.
-    def __init__(self, key, secret_key, token):
+    def __init__(self, key, secret_key, token, token_secret):
         self.auth = tweepy.OAuthHandler(key, secret_key)
         # Uses OAuth to authenticate access to Twitter.
         # Declared during initialisation so that it doesn't take time to connect when the user wants to post.
-        self.auth.set_access_token(token)
+        self.auth.set_access_token(token, token_secret)
         self.api = tweepy.API(self.auth)
         # Setup to use the API and authenticate the user.
 
@@ -98,7 +103,7 @@ def main():
     storage = ChatStore(uri, "qndb", "qna")
 
     query = st.text_input("Research Goal")
-    post_handler = TwitterHandler() 
+    post_handler = TwitterHandler(tuser, tsecret, atoken, asecret) 
 
     if query:
         st.write(f"Researching {query}...")
@@ -115,17 +120,17 @@ def main():
         
     option = st.selectbox(
     "Alternatively, fetch from the database of responses...",
-    ([f"{i['question'].capitalize()}?" for i in storage.get_all_questions_responses()]),
+    (f"{i['question'].capitalize()}{'?' if '?' not in i['question'] else ''}" for i in storage.get_all_questions_responses()),
     # This line is so condensed.
     # Firstly, this uses what's called a list comprehension. It creates a list using an iterable object, in this case the output from the database containing the question-answer pairs. The item being iterated over is 'storage.get_all_questions_responses(), the item is i and the expression is f"{i['question'].capitalize()}?".
     # Let's break this down into parts: f"{i['question].capitalize()}?", uses an f-string, which is a way to place variables in a string. The variable we place is 'i['question'], which references the value with the key 'question' from i. i is the raw output from the database, and by selecting the value associated with the key 'question', we fetch whatever question the user had asked. For example, {"question": "who am i"} will turn into "Who am i?" in final output.
+    # The conditional expression '{'?' if '?' not in i['question'] else ''}' checks if the character '?' is not present in the 'question' string using the 'not in' operator. If '?' is not found in the 'question', the expression evaluates to '?', adding a question mark to the end of the sentence. If '?' is already present in the 'question', the expression evaluates to an empty string '', effectively adding nothing to the end of the sentence.
     # .capitalize is self explanatory, and the question mark at the end simply emphasises the fact that it was a user-asked question. These parts are for aesthetic only.
     index=None,
     placeholder="Select query...",
     )
 
     if st.button("Use database entry"):
-        result = agent({"input": option})
         result = phrase_for_socials(result)
         st.info(result)
         

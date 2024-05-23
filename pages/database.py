@@ -14,14 +14,14 @@ password = os.getenv("MONGO_PWD")
 user = os.getenv("MONGO_USER")
 # Loads the dotenv file with all the passwords and API keys needed.
 
-uri = f"mongodb+srv://{user}:{password}@qndb.fdshmnw.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
+uri = f"mongodb+srv://{user}:{password}@qndb.bjan2b5.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
 # Target URL for the database containing all user queries, responses etc.
 
-
-class ChatStore:
-    # I chose to use a class to represent, access and mutate values in the database for several reasons.
+# I chose to use a class to represent, access and mutate values in the database for several reasons.
     # OOP makes the database MODULAR - I can add or remove any number of methods to access, manipulate or otherwise use the database, and it will apply to all instances across my codebase. Here, I define a set of instance methods that provide basic access to the database, but I can choose to add more complex function later on and it will be universally usable.
     # It also makes my code REUSABLE. Instead of rewriting the functions every time I want to use them in a different file, I simply initialise a ChatStore class in the file. Granted, Python provides the ability to import functions from other files, but that is also object-oriented in nature, as Python treats each .py file as a module. By writing it this way, I make the class relation more clear and explicit.
+
+class ChatStore:
     def __init__(self, constr, database_name, collection_name):
         self.client = MongoClient(constr)
         # Establishes the connection using the uri variable.

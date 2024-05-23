@@ -64,7 +64,7 @@ password = os.getenv("MONGO_PWD")
 user = os.getenv("MONGO_USER")
 # Load the environment variables with all the API keys and passwords needed.
 
-uri = f"mongodb+srv://{user}:{password}@qndb.fdshmnw.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
+uri = f"mongodb+srv://{user}:{password}@qndb.bjan2b5.mongodb.net/?retryWrites=true&w=majority&appName=qndb"
 # Target URL for the database containing all user queries, responses etc., used later in code.
 storage = ChatStore(uri, "qndb", "qna")
 # Initialises a ChatStore class from database.py, enabling various I/O methods to the database.
@@ -229,9 +229,9 @@ class ScrapeWebsiteInput(BaseModel):
     # Field is used to give extra metadata, in this case, a description of each field to provide to the LangChain orchestrator.
     # Each field is statically typed in accordance, and rather aptly, with general Pydantic best-practices.
 
-"""
-The reason we use Pydantic models is because they let us define structure to the data that the tool needs. This means that we define what fields each function will have and what their constraints are. When we're out scraping random websites, we don't really know what the data returned to us will look like. It could have unescaped characters that break the program by ending a string early, or some other formatting issues that stop our code from working. Having Pydantic models will let Python raise validation errors instead of breaking, which we can then catch using try-except statements to keep the code going and continue scraping new websites.
-"""
+
+# The reason we use Pydantic models is because they let us define structure to the data that the tool needs. This means that we define what fields each function will have and what their constraints are. When we're out scraping random websites, we don't really know what the data returned to us will look like. It could have unescaped characters that break the program by ending a string early, or some other formatting issues that stop our code from working. Having Pydantic models will let Python raise validation errors instead of breaking, which we can then catch using try-except statements to keep the code going and continue scraping new websites.
+
 
 class ScrapeWebsiteTool(BaseTool):
     # This is another Pydantic data validation model, this time inheriting from BaseTool.
